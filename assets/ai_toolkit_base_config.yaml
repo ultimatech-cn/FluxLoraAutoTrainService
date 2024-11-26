@@ -5,9 +5,9 @@ config:
   name: "brendan-man001"
   process:
     - type: 'sd_trainer'
-      log_dir: "logs"
-      log_config:
-        log_interval: "50"
+      # log_dir: "logs"
+      # log_config:
+      #   log_interval: "50"
       # root folder to save training sessions/samples/weights
       training_folder: "output"
       # uncomment to see performance stats in the terminal every N steps
