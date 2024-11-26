@@ -1,0 +1,18 @@
+#job-queue-table {
+    overflow-y: auto !important;
+}
+
+#job-queue-table table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+/* #job-queue-table .table-wrap {
+    max-height: 400px;
+    overflow-y: auto;
+} */
+
+#job-queue-table th,
+#job-queue-table td {
+    text-align: center;
+} 

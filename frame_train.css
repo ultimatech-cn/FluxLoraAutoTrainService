@@ -1,0 +1,33 @@
+#queue-container {
+    height: 500px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.queue-row {
+    display: flex !important;
+    align-items: center !important;
+    padding: 10px !important;
+    gap: 10px !important;
+}
+
+.queue-image {
+    width: 100%;          /* 宽度充满容器 */
+    height: 100%;         /* 高度充满容器 */
+    object-fit: cover;    /* 图像内容适应容器，并剪裁多余部分 */
+    border-radius: 5px;   /* 可选，增加圆角 */
+}
+
+.status-text {
+    flex: 1 !important;
+}
+
+.header-style {
+    background-color: #f0f0f0;
+}
+
+.transparent-group {
+    background-color: transparent;
+}
