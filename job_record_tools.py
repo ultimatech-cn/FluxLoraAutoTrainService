@@ -15,6 +15,7 @@ class JobStatusManager:
             df = pd.DataFrame({
                 'image_path': [],  # Put image_path at the front
                 'jobid': [],
+                'job_type': [],
                 'status': [],
                 'completion_time': [],
                 'caption': [],
@@ -23,13 +24,15 @@ class JobStatusManager:
             df = df.astype({
                 'image_path': str,  # Ensure column order matches above
                 'jobid': str,
+                'job_type': str,
                 'status': str,
                 'completion_time': str,
-                'caption': str
+                'caption': str,
+                'model_name': str
             })
             df.to_csv(csv_file, index=False)
     
-    def add_job(self, jobid, image_path, caption, model_name, status=JobStatus.Processing.value):
+    def add_job(self, jobid, image_path, job_type, caption, model_name, status=JobStatus.Processing.value):
         """Add new workflow record"""
         df = pd.read_csv(self.csv_file)
         
@@ -37,6 +40,7 @@ class JobStatusManager:
         new_record = pd.DataFrame([{
             'image_path': image_path,
             'jobid': jobid,
+            'job_type': job_type,
             'status': status,
             'completion_time': None,
             'caption': caption,
@@ -46,7 +50,7 @@ class JobStatusManager:
         print(f"df: {df}")
         df.to_csv(self.csv_file, index=False)
     
-    def update_job_status(self, jobid, new_status):
+    def update_job_status(self, jobid, job_type, new_status):
         """Update workflow status"""
         df = pd.read_csv(self.csv_file)
         
@@ -54,6 +58,7 @@ class JobStatusManager:
         df = df.astype({
             'image_path': str,
             'jobid': str,
+            'job_type': str,
             'status': str,
             'completion_time': str,
             'caption': str,
@@ -65,7 +70,7 @@ class JobStatusManager:
             raise ValueError(f'JobID {jobid} does not exist')
         
         # Update status
-        mask = df['jobid'] == jobid
+        mask = (df['jobid'] == jobid & df['job_type'] == job_type)
         df.loc[mask, 'status'] = new_status
         
         # If status is done, update completion time
@@ -126,6 +131,7 @@ class JobStatusManager:
                 row = pending_df.iloc[idx]
                 task_data = {
                     "job_id": row['jobid'],
+                    "job_type": row['job_type'],
                     "model_name": row['model_name'],
                     "image_path": row['image_path'],
                     "caption": row['caption']

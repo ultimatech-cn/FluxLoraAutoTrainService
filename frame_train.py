@@ -3,14 +3,21 @@ import pandas as pd
 import os
 from multiprocessing import JoinableQueue
 from PIL import Image
-from oneshot_train import Trainer
+from oneshot.oneshot_train import Trainer
 import base64
 from pathlib import Path
 
 
-def check_and_upload(current_images):
-    if current_images is not None and len(current_images) > 0:
-        gr.Warning("Only one image can be uploaded. To change the image, please click 'Clear Photos' first.")
+def check_and_upload(current_images, new_image):
+    if current_images is None:
+        current_images = []
+    
+    if len(current_images) > 0:
+        gr.Warning("You can only upload one image. To change the image, please click 'Clear Photos' first.")
+        return current_images
+    
+    if new_image is not None:
+        return [new_image]
     return current_images
 
 def show_queue_csv_path():
@@ -59,7 +66,8 @@ def train_input(queue, job_status_manager):
 
                     # Add click event for upload button
                     upload_button.upload(
-                        fn=check_and_upload, inputs=[instance_images],
+                        fn=check_and_upload,
+                        inputs=[instance_images, upload_button],
                         outputs=instance_images
                     )
                     clear_button.click(
@@ -72,8 +80,8 @@ def train_input(queue, job_status_manager):
                 with gr.Row(elem_classes="transparent-group"):
                     # table header
                     job_queue = gr.Dataframe(
-                        headers=["Image","Job ID", "Status", "Completion Time", "Caption", "Model Name"],
-                        datatype=["html", "str", "str", "str", "str", "str"],
+                        headers=["Image","Job ID","Job Type", "Status", "Completion Time", "Caption", "Model Name"],
+                        datatype=["html", "str", "str", "str", "str", "str", "str"],
                         value=[],
                         interactive=False,
                         row_count=10,
@@ -100,7 +108,6 @@ def train_input(queue, job_status_manager):
                 )
 
         run_button.click(
-            # fn=lambda model_name, images, prompt: (trainer.run(model_name, images, prompt), []),
             fn=trainer.run,
             inputs=[output_model_name, instance_images, trigger_words, image_caption],
             outputs=[instance_images, job_queue]
