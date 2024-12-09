@@ -72,7 +72,7 @@ class Generator:
         # Use put_nowait with exception handling to check if queue is full
         try:
             if not self.queue.full():
-                self.job_manager.add_job(job_id, preview_image, "ONESHOT_GEN", caption, model_name, JobStatus.WaitingQueue.value)
+                
                 self.queue.put_nowait(task_data)
                 gr.Info("Task has been added to queue, please wait patiently")
                 logger.info(f"Task {task_data['job_id']} oneshot gen task added to queue successfully")

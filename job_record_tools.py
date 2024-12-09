@@ -147,8 +147,14 @@ class JobStatusManager:
     def check_job_status(self, jobid, job_type, status):
         """Check job status"""
         df = pd.read_csv(self.csv_file)
+
+        print(f"df: {df}")
+        print(f"jobid: {jobid}, job_type: {job_type}, status: {status}")
         mask = ((df['jobid'] == jobid) & (df['job_type'] == job_type))
-        return df.loc[mask, 'status'].values[0] == status
+        result = df.loc[mask, 'status'].values
+        print(f"result: {result}")
+        if result is not None and len(result) > 0:
+            return result[0] == status
     
     
     
