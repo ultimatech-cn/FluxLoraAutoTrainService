@@ -1,6 +1,5 @@
 from oneshot.BaseTrainer import BaseTrainer
 import yaml
-import os
 import sys
 from pathlib import Path
 from job_status import JobStatus
@@ -45,17 +44,23 @@ class AIToolkitOneShotGen():
         yaml_config["config"]["process"][0]['generate']['prompts'] = prompts
         return yaml_config
 
-    def gen(self, config_data: dict) -> bool:
+    def gen(self, config_data: dict) -> str:
+
         # Update task status to Processing
         self.job_manager.update_job_status(config_data['job_id'], 'ONESHOT_GEN', JobStatus.Processing.value)
-
         self.job_path = BASE_OUTPUT_PATH.joinpath(config_data['job_id'])
         self.fixed_yaml_config = self.fix_yaml_config(self.yaml_config, config_data['prompts'], config_data['model_name']) # fix yaml config
-        print(self.fixed_yaml_config)
         config_path =  str(self.job_path.joinpath(f"{config_data['job_id']}-{config_data['model_name']}-gen.yaml").resolve())
         print(config_path)
+
+        # save the fixed yaml config to the job path
         with open(config_path, "w") as f:
             yaml.dump(self.fixed_yaml_config, f)
+
+        # save prompts to the job path
+        with open(self.job_path.joinpath('prompts.txt'), "w") as f:
+            for prompt in config_data['prompts']:
+                f.write(prompt + "\n")
             
         # run the job locally
         job = get_job(config_path)

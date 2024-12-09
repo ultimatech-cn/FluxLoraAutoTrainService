@@ -1,0 +1,27 @@
+---
+
+job: generate # tells the runner what to do
+config:
+  name: "generate" # this is not really used anywhere currently but required by runner
+  process:
+    # process 1
+    - type: to_folder  # process images to a folder
+      output_folder: "job_data/afab9a775f694d6a85e398ef16636073/output/generate" # replace with real path
+      device: cuda:0 # cpu, cuda:0, etc
+      generate:
+        sampler: "flowmatch" # ignored for now, will add later though ddpm is used regardless for now
+        width: 1024
+        height: 1024
+        seed: 42 # -1 is random
+        guidance_scale: 4
+        sample_steps: 25
+        prompt_file: false # if true a txt file will be created next to images with prompt strings used
+        prompts:
+          - "photo of batman"
+
+      model:
+        name_or_path: "black-forest-labs/FLUX.1-dev"
+        assistant_lora_path: "D:\\Code\\ai-toolkit\\FluxLoraAutoTrainService\\job_data\\afab9a775f694d6a85e398ef16636073\\output\\person1\\person1.safetensors"
+        is_flux: true
+        quantize: true
+        use_flux_cfg: true

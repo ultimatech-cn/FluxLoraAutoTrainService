@@ -5,9 +5,9 @@ config:
   name: "brendan-man001"
   process:
     - type: 'sd_trainer'
-      # log_dir: "logs"
-      # log_config:
-      #   log_interval: "50"
+      log_dir: "logs"
+      log_config:
+        log_interval: "50"        
       # root folder to save training sessions/samples/weights
       training_folder: "output"
       # uncomment to see performance stats in the terminal every N steps
@@ -31,7 +31,7 @@ config:
         save_every: 1000 # save every this many steps
         max_step_saves_to_keep: 4 # how many intermittent saves to keep
         push_to_hub: false #change this to True to push your trained model to Hugging Face.
-        # You can either set up a HF_TOKEN env variable or you'll be prompted to log-in
+        # You can either set up a HF_TOKEN env variable or you'll be prompted to log-in         
 #       hf_repo_id: your-username/your-model-slug
 #       hf_private: true #whether the repo is private or public
       datasets:
@@ -48,7 +48,7 @@ config:
           resolution: [ 512, 768, 1024 ]  # flux enjoys multiple resolutions
       train:
         batch_size: 1
-        steps: 1000  # total number of steps to train 500 - 4000 is a good range3
+        steps: 2000  # total number of steps to train 500 - 4000 is a good range3
         gradient_accumulation_steps: 1
         train_unet: true
         train_text_encoder: false  # probably won't work with flux
@@ -75,7 +75,7 @@ config:
         name_or_path: "black-forest-labs/FLUX.1-dev"
         is_flux: true
         quantize: true  # run 8bit mixed precision
-#        low_vram: true  # uncomment this if the GPU is connected to your monitors. It will use less vram to quantize, but is slower.
+        low_vram: true  # uncomment this if the GPU is connected to your monitors. It will use less vram to quantize, but is slower.
       sample:
         sampler: "flowmatch" # must match train.noise_scheduler
         sample_every: 500 # sample every this many steps
@@ -84,10 +84,10 @@ config:
         prompts:
           # you can add [trigger] to the prompts here and it will be replaced with the trigger word
 #          - "[trigger] holding a sign that says 'I LOVE PROMPTS!'"\
-          - "Selfie of a [trigger] smiling at the MCG in Melbourne in the stadium. There is a game of AFL playing at the stadium. Professionally shot and color graded. Canon R5 50mm f11"
-#          - "a close up photo of bbrendan-man001 smiling at the camera, in a gray studio background. Professionally shot and color graded. Canon R5 50mm f11."
-#          - "a photo of brendan-man001 man standing in a studio, modeling a white shirt and blue jeans with white shoes. Professionally shot and color graded. Canon R5 50mm f1.2"
-#          - " a full body photo of brendan-man001 man standing in a forest wearing a t-shirt and shorts, with hiking boots on. Professionally shot and color graded. Canon R5 50mm f1.2"
+          - "Selfie of a brendan-man001 smiling at the MCG in Melbourne in the stadium. There is a game of AFL playing at the stadium. Professionally shot and color graded. Canon R5 50mm f11"
+          - "a close up photo of bbrendan-man001 smiling at the camera, in a gray studio background. Professionally shot and color graded. Canon R5 50mm f11."          
+          - "a photo of brendan-man001 man standing in a studio, modeling a white shirt and blue jeans with white shoes. Professionally shot and color graded. Canon R5 50mm f1.2"
+          - " a full body photo of brendan-man001 man standing in a forest wearing a t-shirt and shorts, with hiking boots on. Professionally shot and color graded. Canon R5 50mm f1.2"
         neg: ""  # not used on flux
         seed: 42
         walk_seed: true

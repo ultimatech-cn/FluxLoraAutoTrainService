@@ -70,7 +70,7 @@ class JobStatusManager:
             raise ValueError(f'JobID {jobid} does not exist')
         
         # Update status
-        mask = (df['jobid'] == jobid & df['job_type'] == job_type)
+        mask = ((df['jobid'] == jobid) & (df['job_type'] == job_type))
         df.loc[mask, 'status'] = new_status
         
         # If status is done, update completion time
@@ -143,6 +143,12 @@ class JobStatusManager:
         except Exception as e:
             logger.error(f"Error getting pending jobs: {str(e)}")
             return []
+    
+    def check_job_status(self, jobid, job_type, status):
+        """Check job status"""
+        df = pd.read_csv(self.csv_file)
+        mask = ((df['jobid'] == jobid) & (df['job_type'] == job_type))
+        return df.loc[mask, 'status'].values[0] == status
     
     
     

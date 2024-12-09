@@ -5,14 +5,15 @@ from uuid import uuid4
 from job_status import JobStatus
 from multiprocessing import JoinableQueue
 from job_record_tools import JobStatusManager
-
+from pathlib import Path
 # Get logger instance
 logger = setup_logger('oneshot_train')
 
 # Set directory for saving images
-UPLOAD_DIR = "job_data"
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+UPLOAD_DIR = Path(__file__).parent.parent.joinpath('job_data')
+print(f"UPLOAD_DIR: {UPLOAD_DIR}")
+if not os.path.exists(str(UPLOAD_DIR)):
+    os.makedirs(str(UPLOAD_DIR))
 
 class Trainer:
     def __init__(self, queue: JoinableQueue, job_status_manager: JobStatusManager):

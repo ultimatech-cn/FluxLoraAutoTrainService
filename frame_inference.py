@@ -4,33 +4,18 @@ import pandas as pd
 from oneshot.oneshot_gen import Generator
 import os
 
-init_prompt = [
-                "[trigger] in a garden",
-                "[trigger] in a coffee shop",
-                "[trigger] in a library",
-                "[trigger] at the beach",
-                "[trigger] in a park",
-                "[trigger] in an office",
-                "[trigger] at a party",
-                "[trigger] in a restaurant",
-                "[trigger] at home",
-                "[trigger] in a gym",
-                "[trigger] on a mountain",
-                "[trigger] in a museum",
-                "[trigger] at a concert",
-                "[trigger] in a shopping mall",
-                "[trigger] on a street",
-                "[trigger] in a classroom",
-                "[trigger] at a sports event",
-                "[trigger] in a studio",
-                "[trigger] at an airport",
-                "[trigger] in a forest"
-            ]
-
 def get_done_jobs():
     job_df = pd.read_csv('job_status.csv')
     done_jobs = job_df['jobid'][job_df['status'] == 'done'][job_df['job_type'] == 'ONESHOT_TRAIN'].tolist()
     return done_jobs
+
+def load_prompts(gender) -> list[str]:
+    file_path = f"assets/image_prompts_for_{gender}.txt"
+    with open(file_path, 'r') as file:
+        prompts = file.readlines()
+    return [prompt.strip() for prompt in prompts]
+
+prompts_mans = load_prompts('man')
 
 # Main interface building function
 def train_inference(queue, job_status_manager):
@@ -65,6 +50,13 @@ def train_inference(queue, job_status_manager):
                     label="Completion Time",
                     interactive=False
                 )
+                gender = gr.Radio(
+                    choices=["man", "lady"],
+                    label="性别选择",
+                    value="man"
+                )
+
+                
 
             with gr.Column(scale=1, min_width=300):
                 preview_image = gr.Image(
@@ -82,10 +74,9 @@ def train_inference(queue, job_status_manager):
 
             
             grs = []
-            for i in range(len(init_prompt)):
-                prefix = caption.value.split(' ')[0] if caption.value else None
-                prompt_value = f"{init_prompt[i].replace('[trigger]', prefix)}" if prefix else init_prompt[i]
-                grs.append(gr.Textbox(label="prompt " + str(i + 1), value=prompt_value))
+            for i in range(len(prompts_mans)):
+                # prefix = caption.value.split(' ')[0] if caption.value else None
+                grs.append(gr.Textbox(label="prompt " + str(i + 1), value=None))
 
         with gr.Accordion("Generated Images", open=False) as sample:
             img_markdown = gr.Markdown(
@@ -108,24 +99,20 @@ def train_inference(queue, job_status_manager):
                 
                 prefix = job_info['caption'].split(' ')[0] if job_info['caption'] else None
                 updated_prompts = [
-                    init_prompt[i].replace('[trigger]', prefix) if prefix else init_prompt[i]
-                    for i in range(len(init_prompt))
+                    prompts_mans[i].replace('[trigger]', prefix) if prefix else prompts_mans[i]
+                    for i in range(len(prompts_mans))
                 ]
                 
                 generated_dir = f'job_data/{selected_job}/oneshot_generate'
+                gallery_value = []
                 if os.path.exists(generated_dir):
-                    image_paths = [os.path.join(generated_dir, img) 
-                                 for img in os.listdir(generated_dir) 
-                                 if img.endswith(('.png', '.jpg', '.jpeg'))]
-                    if image_paths:
-                        gallery_value = image_paths
-                        markdown_text = "Images generated based on the above prompts"
-                    else:
-                        gallery_value = None
-                        markdown_text = "No images generated yet or generation in progress"
-                else:
-                    gallery_value = None
-                    markdown_text = "No images generated yet or generation in progress"
+                    gallery_value = [
+                        os.path.join(generated_dir, img) 
+                        for img in os.listdir(generated_dir) 
+                        if img.lower().endswith(('.png', '.jpg', '.jpeg'))
+                    ]
+                
+                markdown_text = "Images generated based on the above prompts" if gallery_value else "No images generated yet"
                 
                 return {
                     preview_image: job_info['image_path'],
@@ -156,6 +143,16 @@ def train_inference(queue, job_status_manager):
             fn=get_prompts_and_generate,
             inputs=grs + [job_selector, model_name, caption, preview_image],  # 将所有文本框和job_selector作为输入
             outputs=[]
+        )
+
+        def update_prompts_based_on_gender(selected_gender):
+            prompts = load_prompts(selected_gender)
+            return {gr_prompt: prompt for gr_prompt, prompt in zip(grs, prompts)}
+
+        gender.change(
+            fn=update_prompts_based_on_gender,
+            inputs=[gender],
+            outputs=grs
         )
 
     return demo
