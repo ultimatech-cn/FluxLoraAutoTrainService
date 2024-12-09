@@ -1,2 +1,2 @@
-queue_size: 5
-flux_model_type: "FLUX.1-schnell" # "FLUX.1-schnell" or "FLUX.1-dev"
+queue_size: 10
+flux_model_type: "FLUX.1-dev" # "FLUX.1-schnell" or "FLUX.1-dev"
