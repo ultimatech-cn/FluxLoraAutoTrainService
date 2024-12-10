@@ -21,7 +21,7 @@ config:
 
       model:
         name_or_path: "black-forest-labs/FLUX.1-schnell"
-        assistant_lora_path: "D:\\Code\\ai-toolkit\\FluxLoraAutoTrainService\\job_data\\afab9a775f694d6a85e398ef16636073\\output\\person1\\person1.safetensors"
+        lora_path: "D:\\Code\\ai-toolkit\\FluxLoraAutoTrainService\\job_data\\afab9a775f694d6a85e398ef16636073\\output\\person1\\person1.safetensors"
         is_flux: true
         quantize: true
         use_flux_cfg: true

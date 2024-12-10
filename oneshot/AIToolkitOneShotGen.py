@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 from job_status import JobStatus
 from job_record_tools import JobStatusManager
+import os
+import shutil
 # Get logger instance
 from logger_config import setup_logger
 logger = setup_logger('AIToolkitOneShotGen')
@@ -36,10 +38,10 @@ class AIToolkitOneShotGen():
         with open(config_path, 'r') as file:
             return yaml.safe_load(file)
         
-    def fix_yaml_config(self, yaml_config: dict, prompts: list[str], model_name: str):
+    def fix_yaml_config(self, yaml_config: dict, prompts: list[str], model_name: str, output_path: str):
         # Update the config with user inputs
-        yaml_config["config"]["process"][0]['output_folder'] = str(self.job_path.joinpath('oneshot_generate').resolve())
-        yaml_config["config"]["process"][0]['model']['assistant_lora_path'] = str(self.job_path.joinpath('output').joinpath(model_name).joinpath(model_name + '.safetensors').resolve())
+        yaml_config["config"]["process"][0]['output_folder'] = output_path
+        yaml_config["config"]["process"][0]['model']['lora_path'] = str(self.job_path.joinpath('output').joinpath(model_name).joinpath(model_name + '.safetensors').resolve())
         # 直接替换整个 prompts 列表，而不是逐个赋值
         yaml_config["config"]["process"][0]['generate']['prompts'] = prompts
         return yaml_config
@@ -49,7 +51,10 @@ class AIToolkitOneShotGen():
         # Update task status to Processing
         self.job_manager.update_job_status(config_data['job_id'], 'ONESHOT_GEN', JobStatus.Processing.value)
         self.job_path = BASE_OUTPUT_PATH.joinpath(config_data['job_id'])
-        self.fixed_yaml_config = self.fix_yaml_config(self.yaml_config, config_data['prompts'], config_data['model_name']) # fix yaml config
+        output_path = str(self.job_path.joinpath('oneshot_generate').resolve())
+        if os.path.exists(output_path):
+            shutil.rmtree(output_path) # if exists, delete the folder
+        self.fixed_yaml_config = self.fix_yaml_config(self.yaml_config, config_data['prompts'], config_data['model_name'], output_path) # fix yaml config
         config_path =  str(self.job_path.joinpath(f"{config_data['job_id']}-{config_data['model_name']}-gen.yaml").resolve())
         print(config_path)
 

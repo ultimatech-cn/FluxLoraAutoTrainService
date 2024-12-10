@@ -54,7 +54,11 @@ class Generator:
             if is_different_prompts(grs, str(UPLOAD_DIR.joinpath(job_id))):
                 gr.Warning("Prompts are the same as the last generation, no need to regenerate.")
                 return None
-            
+        # 获取caption的第一个单词作为prompt
+        trigger_word = caption.split()[0]
+        # 将grs中的[trigger]替换为trigger_word
+        grs = [x.replace('[trigger]', trigger_word) for x in grs]
+
         # 将prompts写入job_data/job_id/prompts.txt
         with open(Path(UPLOAD_DIR).joinpath(job_id).joinpath('prompts.txt'), 'w') as f:
             f.write('\n'.join(grs))

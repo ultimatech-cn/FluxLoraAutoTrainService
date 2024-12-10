@@ -6,6 +6,7 @@ import base64
 from multiprocessing import Process, JoinableQueue
 from consumer import consumer
 from frame_train import train_input
+from frame_train_multi import train_multi_input
 from frame_inference import train_inference
 from job_record_tools import JobStatusManager
 
@@ -58,6 +59,8 @@ with gr.Blocks() as demo:
             train_input(queue, job_status_manager)
         with gr.TabItem('\N{party popper}Step2 (Generating Human model Images)'):
             train_inference(queue, job_status_manager)
+        with gr.TabItem('\N{rocket}Step3 (Multiple Image Train)'):
+            train_multi_input(queue, job_status_manager)
 
 if __name__ == "__main__":
     # Start consumer process first
