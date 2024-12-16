@@ -12,10 +12,43 @@ def get_done_jobs():
     done_jobs = job_df['jobid'][job_df['status'] == 'done'][job_df['job_type'] == 'ONESHOT_GEN'].tolist()
     return done_jobs
 
+selected_images = []
+image_paths = []
+
+def toggle_selection(evt: gr.SelectData):
+    global selected_images
+    if evt.index in selected_images:
+        gr.Warning("Image already selected")
+    else:
+        selected_images.append(evt.index)
+    # 先对selected_images排序
+    selected_images.sort()
+    print(selected_images)
+    return [[image_paths[i] for i in selected_images], selected_images]
+
+def remove_selected(evt: gr.SelectData):
+    global selected_images
+    if evt.index in selected_images:
+        selected_images.remove(evt.index)
+    return [image_paths[i] for i in selected_images]
+
+# 添加新的全选函数
+def select_all():
+    global selected_images
+    selected_images = list(range(len(image_paths)))  # 选择所有图片的索引
+    return [[image_paths[i] for i in selected_images], selected_images]
+
+# 添加新的清除函数
+def clear_selection():
+    global selected_images
+    selected_images = []
+    return [[], []]
 
 # Main interface building function
 def train_multi_input(queue, job_status_manager):
     trainer = Trainer(queue, job_status_manager)
+
+    state = gr.State(value=selected_images)  # 定义状态变量
     
     with gr.Blocks() as demo:
         with gr.Row():
@@ -57,29 +90,52 @@ def train_multi_input(queue, job_status_manager):
                 show_label=False,
                 columns=5,
                 object_fit="contain",
-                selected_index=0
+                show_download_button=False,
+                interactive=False,
+                allow_preview=False
             )
+        with gr.Row():
+            all_selected_button = gr.Button('All Selected')
+            clear_button = gr.Button('Clear')
 
         with gr.Accordion("Selected Images", open=False) as selected_sample:
-            selected_images = gr.Gallery(
+            selected_images_gallery = gr.Gallery(
                 label=None,
                 show_label=False,
                 columns=5,
-                object_fit="contain"
+                object_fit="contain",
+                show_download_button=False,
+                interactive=False,
+                allow_preview=False
             )
-
+        
         with gr.Row():
             run_button = gr.Button('Start Generation', variant="primary")
-            select_button = gr.Button('Select Images')
+
+        generated_images.select(fn=toggle_selection, inputs=None, outputs=[selected_images_gallery, state])
+        selected_images_gallery.select(fn=remove_selected, inputs=None, outputs=selected_images_gallery)
+
+        # 修改按钮事件处理
+        all_selected_button.click(
+            fn=select_all,
+            inputs=[],
+            outputs=[selected_images_gallery, state]
+        )
+
+        clear_button.click(
+            fn=clear_selection,
+            inputs=[],
+            outputs=[selected_images_gallery, state]
+        )
 
         def update_display(selected_job):
+            global image_paths  # 声明 image_paths 为全局变量
             if selected_job:
                 job_df = pd.read_csv("job_status.csv")
-                job_info = job_df[job_df['jobid'] == selected_job].iloc[0]
-                
-                prefix = job_info['caption'].split(' ')[0] if job_info['caption'] else None
-                
+                job_info = job_df[((job_df['jobid'] == selected_job) & (job_df['job_type'] == 'ONESHOT_GEN'))].iloc[0]                
                 generated_dir = f'job_data/{selected_job}/oneshot_generate'
+                # get the absolute path of generated_dir
+                generated_dir = os.path.abspath(generated_dir)
                 gallery_value = []
                 if os.path.exists(generated_dir):
                     gallery_value = [
@@ -88,7 +144,8 @@ def train_multi_input(queue, job_status_manager):
                         if img.lower().endswith(('.png', '.jpg', '.jpeg'))
                     ]
                 
-                markdown_text = "Images generated based on the above prompts" if gallery_value else "No images generated yet"
+                # print(gallery_value)
+                image_paths = gallery_value  # 现在这行代码会更新全局变量 image_paths
                 
                 return {
                     preview_image: job_info['image_path'],
@@ -105,23 +162,21 @@ def train_multi_input(queue, job_status_manager):
             outputs=[preview_image, completion_time, caption, model_name, generated_images]
         )
 
-        # 修改函数定义，移除 job_id 的关键字参数
-        def get_prompts_and_generate(*args):
-            pass
-            
+        def load_dropdown_content():
+            # 这里可以定义加载下拉菜单内容的逻辑
+            done_jobs = get_done_jobs()
+            return done_jobs
+
+        # job_selector.focus(
+        #     fn=load_dropdown_content,
+        #     inputs=[],
+        #     outputs=[job_selector]
+        # )
+
         run_button.click(
-            fn=get_prompts_and_generate,
-            inputs=[job_selector, model_name, caption, preview_image],  # 将所有文本框和job_selector作为输入
+            fn=trainer.run,
+            inputs=[job_selector, selected_images_gallery, model_name, caption, preview_image, state], 
             outputs=[]
-        )
-
-        def select_images(selected_images_list):
-            return {selected_images: selected_images_list}
-
-        select_button.click(
-            fn=select_images,
-            inputs=[generated_images],
-            outputs=[selected_images]
         )
 
     return demo

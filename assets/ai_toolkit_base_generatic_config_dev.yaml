@@ -13,8 +13,8 @@ config:
         width: 1024
         height: 1024
         seed: 42 # -1 is random
-        guidance_scale: 4
-        sample_steps: 25
+        guidance_scale: 7
+        sample_steps: 35
         prompt_file: false # if true a txt file will be created next to images with prompt strings used
         prompts:
           - "photo of batman"

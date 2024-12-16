@@ -6,8 +6,9 @@ from job_status import JobStatus
 from multiprocessing import JoinableQueue
 from job_record_tools import JobStatusManager
 from pathlib import Path
+import shutil
 # Get logger instance
-logger = setup_logger('oneshot_train')
+logger = setup_logger('fewshot_train')
 
 # Set directory for saving images
 UPLOAD_DIR = Path(__file__).parent.parent.joinpath('job_data')
@@ -23,53 +24,61 @@ class Trainer:
         self.caption = None      # Training prompt
         self.queue = queue      # Queue for tasks
         self.job_manager = job_status_manager   # Job status manager
+        self.selected_images = []
     def run(
             self,
+            job_id: str,
+            selected_images: list,
             model_name: str,
-            instance_images: list,
-            trigger_words: str,
-            caption: str
+            caption: str,
+            preview_image: str,
+            selected_indexes: list
     ) -> str:
         # Validate instance
-        if instance_images is None or len(instance_images) == 0:
-            gr.Warning('Please upload photos!')
-            return [[], self.job_manager.get_all_records()]
+        if selected_images is None or len(selected_images) == 0:
+            gr.Warning('Please select images!')
+            return None
 
         # Check image count
-        if len(instance_images) > 1:
-            gr.Warning('Only one photo can be trained!')
-            return [[], self.job_manager.get_all_records()]
+        if len(selected_images) < 3:
+            gr.Warning('At least 2 images are required!')
+            return None
         
-        # Generate unique job ID
-        self.job_id = str(uuid4().hex)
-
-        # Store user input information
+        self.job_id = job_id
         self.model_name = model_name
-        self.image_path = instance_images[0][0]
-        self.caption = caption.replace("[trigger]", trigger_words)
-        
+        self.image_path = preview_image
+        self.caption = caption
+        self.selected_images = [item[0] for item in selected_images]
+        self.selected_indexes = selected_indexes
+
+        # check job status
+        if self.job_manager.check_job_status(self.job_id, "FEWSHOT_TRAIN", JobStatus.Processing.value) or self.job_manager.check_job_status(self.job_id, "FEWSHOT_TRAIN", JobStatus.WaitingQueue.value):
+            gr.Warning("Task is already in progress. Please wait for it to complete.")
+            return None
+
         # Prepare task data for queue
         task_data = {
                 "job_id": self.job_id,
-                "job_type": "ONESHOT_TRAIN",
-                "model_name": model_name,
+                "job_type": "FEWSHOT_TRAIN",
+                "model_name": self.model_name,
                 "image_path": self.image_path,
-                "caption": self.caption
+                "caption": self.caption,
+                "selected_images": self.selected_images,
+                "selected_indexes": self.selected_indexes
         }
         
         # Use put_nowait with exception handling to check if queue is full
         try:
             if not self.queue.full():
-                self.job_manager.add_job(self.job_id, self.image_path, 'ONESHOT_TRAIN', self.caption, self.model_name, JobStatus.WaitingQueue.value)
+                self.job_manager.add_job(self.job_id, self.image_path, 'FEWSHOT_TRAIN', self.caption, self.model_name, JobStatus.WaitingQueue.value)
                 self.queue.put_nowait(task_data)
-
 
                 gr.Info("Job has been added to queue, please wait patiently")
                 logger.info(f"Task {task_data['job_id']} added to queue successfully")
-                return [[], self.job_manager.get_all_records()]
+                return None
             else:
                 logger.info(f"Task {task_data['job_id']} failed to add to queue")
                 gr.Warning("Queue is full. Maximum of 5 tasks allowed. Please try again later.")
-                return [instance_images, self.job_manager.get_all_records()]
+                return None
         except Exception as e:
             gr.Error(f"An error occurred: {e}")

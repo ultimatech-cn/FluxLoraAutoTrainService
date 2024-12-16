@@ -3,6 +3,7 @@ from logger_config import setup_logger
 from job_status import JobStatus
 from oneshot.AIToolkitOneShotTrainer import AIToolkitOneShotTrainer
 from oneshot.AIToolkitOneShotGen import AIToolkitOneShotGen
+from fewshot.AIToolkitFewShotTrainer import AIToolkitFewShotTrainer
 import gradio as gr
 
 logger = setup_logger('consumer')
@@ -10,6 +11,7 @@ logger = setup_logger('consumer')
 def consumer(q):
     oneshot_trainer = AIToolkitOneShotTrainer()
     oneshot_gen = AIToolkitOneShotGen()
+    fewshot_trainer = AIToolkitFewShotTrainer()
     while True:
         try:
             task = q.get()
@@ -28,6 +30,11 @@ def consumer(q):
                         if oneshot_gen.gen(config_data=task):
                             gr.Info(f"OneShotGen task completed successfully: {task['job_id']}")
                             logger.info(f"OneShotGen task completed successfully: {task['job_id']}")
+                    elif task['job_type'] == "FEWSHOT_TRAIN":
+                        logger.info(f"FewShotTrainer task processing: {task['job_id']}")
+                        if fewshot_trainer.train(task_data=task):
+                            gr.Info(f"FewShotTrainer task completed successfully: {task['job_id']}")
+                            logger.info(f"FewShotTrainer task completed successfully: {task['job_id']}")
                 except Exception as e:
                     logger.error(f"Error processing {task['job_type']} task {task['job_id']}: {str(e)}")
                 finally:
@@ -41,4 +48,6 @@ def consumer(q):
                 oneshot_trainer.change_job_status(task['job_id'], task['job_type'], JobStatus.Failed.value)
             elif task['job_type'] == "ONESHOT_GEN":
                 oneshot_gen.change_job_status(task['job_id'], task['job_type'], JobStatus.Failed.value)
+            elif task['job_type'] == "FEWSHOT_TRAIN":
+                fewshot_trainer.change_job_status(task['job_id'], task['job_type'], JobStatus.Failed.value)
             time.sleep(10)
