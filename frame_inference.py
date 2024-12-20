@@ -24,17 +24,18 @@ def train_inference(queue, job_status_manager):
    
     with gr.Blocks(css="frame_train.css") as demo:
 
-        done_jobs = get_done_jobs()
+        # done_jobs = get_done_jobs()
         
         # Create dropdown and display components
         with gr.Row():
             with gr.Column(scale=1, min_width=300):
                 job_selector = gr.Dropdown(
-                    choices=done_jobs,
+                    choices=["Initial 1"],
                     label="Select JobID of completed model from step 1",
                     multiselect=False,
-                    value=None
-                )   
+                    value=None,
+                    allow_custom_value=True
+                ) 
 
                 model_name = gr.Textbox(
                     label="Model Name",
@@ -95,7 +96,8 @@ def train_inference(queue, job_status_manager):
         def update_display(selected_job):
             if selected_job:
                 job_df = pd.read_csv("job_status.csv")
-                job_info = job_df[job_df['jobid'] == selected_job].iloc[0]
+                # job_info = job_df[job_df['jobid'] == selected_job].iloc[0]
+                job_info = job_df[((job_df['jobid'] == selected_job) & (job_df['job_type'] == 'ONESHOT_TRAIN'))].iloc[0]
                 
                 prefix = job_info['caption'].split(' ')[0] if job_info['caption'] else None
                 updated_prompts = [
@@ -154,5 +156,13 @@ def train_inference(queue, job_status_manager):
             inputs=[gender],
             outputs=grs
         )
+
+        def update_dropdown():
+            new_choices = get_done_jobs()
+            print(new_choices)
+            # 使用 gr.Dropdown.update() 方法更新下拉框的选项
+            return gr.Dropdown(choices=new_choices, value=new_choices[0])
+    
+        demo.load(fn=update_dropdown, inputs=[], outputs=job_selector)
 
     return demo

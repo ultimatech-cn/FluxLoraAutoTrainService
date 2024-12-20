@@ -4,7 +4,6 @@ import os
 from multiprocessing import JoinableQueue
 from PIL import Image
 from fewshot.fewshot_train import Trainer
-import base64
 from pathlib import Path
 
 def get_done_jobs():
@@ -28,9 +27,21 @@ def toggle_selection(evt: gr.SelectData):
 
 def remove_selected(evt: gr.SelectData):
     global selected_images
-    if evt.index in selected_images:
-        selected_images.remove(evt.index)
-    return [image_paths[i] for i in selected_images]
+    img_path = evt.value['image']['path'].split('\\')[-1]
+    print(img_path)
+    index = -1  # 默认值为 -1 表示未找到
+    print(image_paths)
+    for i, path in enumerate(image_paths):
+        if img_path in path:
+            index = i
+            break
+    print(index)
+    if index in selected_images:
+        selected_images.remove(index)
+    selected_images.sort()
+    print(selected_images)
+    result_images = [image_paths[i] for i in selected_images]
+    return [result_images, selected_images]
 
 # 添加新的全选函数
 def select_all():
@@ -49,17 +60,18 @@ def train_multi_input(queue, job_status_manager):
     trainer = Trainer(queue, job_status_manager)
 
     state = gr.State(value=selected_images)  # 定义状态变量
-    
+
     with gr.Blocks() as demo:
         with gr.Row():
             with gr.Column(scale=1, min_width=300):
-                done_jobs = get_done_jobs()
+                # done_jobs = get_done_jobs()
                 job_selector = gr.Dropdown(
-                    choices=done_jobs,
+                    choices=["Initial 1"],
                     label="Select JobID of completed model from step 1",
                     multiselect=False,
-                    value=None
-                )   
+                    value=None,
+                    allow_custom_value=True
+                )
 
                 model_name = gr.Textbox(
                     label="Model Name",
@@ -68,7 +80,7 @@ def train_multi_input(queue, job_status_manager):
 
                 caption = gr.Textbox(
                     label="Image Description",
-                    interactive=False 
+                    interactive=False
                 )
 
                 completion_time = gr.Textbox(
@@ -86,7 +98,7 @@ def train_multi_input(queue, job_status_manager):
 
         with gr.Accordion("Generated Images", open=False) as sample:
             generated_images = gr.Gallery(
-                label=None, 
+                label=None,
                 show_label=False,
                 columns=5,
                 object_fit="contain",
@@ -108,12 +120,13 @@ def train_multi_input(queue, job_status_manager):
                 interactive=False,
                 allow_preview=False
             )
-        
+
         with gr.Row():
-            run_button = gr.Button('Start Generation', variant="primary")
+            run_button = gr.Button('Start Generation', variant="p")
+
 
         generated_images.select(fn=toggle_selection, inputs=None, outputs=[selected_images_gallery, state])
-        selected_images_gallery.select(fn=remove_selected, inputs=None, outputs=selected_images_gallery)
+        selected_images_gallery.select(fn=remove_selected, inputs=None, outputs=[selected_images_gallery, state])
 
         # 修改按钮事件处理
         all_selected_button.click(
@@ -132,21 +145,21 @@ def train_multi_input(queue, job_status_manager):
             global image_paths  # 声明 image_paths 为全局变量
             if selected_job:
                 job_df = pd.read_csv("job_status.csv")
-                job_info = job_df[((job_df['jobid'] == selected_job) & (job_df['job_type'] == 'ONESHOT_GEN'))].iloc[0]                
+                job_info = job_df[((job_df['jobid'] == selected_job) & (job_df['job_type'] == 'ONESHOT_GEN'))].iloc[0]
                 generated_dir = f'job_data/{selected_job}/oneshot_generate'
                 # get the absolute path of generated_dir
                 generated_dir = os.path.abspath(generated_dir)
                 gallery_value = []
                 if os.path.exists(generated_dir):
                     gallery_value = [
-                        os.path.join(generated_dir, img) 
-                        for img in os.listdir(generated_dir) 
+                        os.path.join(generated_dir, img)
+                        for img in os.listdir(generated_dir)
                         if img.lower().endswith(('.png', '.jpg', '.jpeg'))
                     ]
-                
+
                 # print(gallery_value)
                 image_paths = gallery_value  # 现在这行代码会更新全局变量 image_paths
-                
+
                 return {
                     preview_image: job_info['image_path'],
                     completion_time: job_info['completion_time'],
@@ -155,7 +168,7 @@ def train_multi_input(queue, job_status_manager):
                     generated_images: gallery_value
                 }
             return None
-            
+
         job_selector.change(
             fn=update_display,
             inputs=[job_selector],
@@ -175,8 +188,16 @@ def train_multi_input(queue, job_status_manager):
 
         run_button.click(
             fn=trainer.run,
-            inputs=[job_selector, selected_images_gallery, model_name, caption, preview_image, state], 
+            inputs=[job_selector, selected_images_gallery, model_name, caption, preview_image, state],
             outputs=[]
         )
+
+        def update_dropdown():
+            new_choices = get_done_jobs()
+            print(new_choices)
+            # 使用 gr.Dropdown.update() 方法更新下拉框的选项
+            return gr.Dropdown(choices=new_choices, value=new_choices[0])
+
+        demo.load(fn=update_dropdown, inputs=[], outputs=job_selector)
 
     return demo
