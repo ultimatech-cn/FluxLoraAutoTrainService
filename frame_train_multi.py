@@ -122,7 +122,7 @@ def train_multi_input(queue, job_status_manager):
             )
 
         with gr.Row():
-            run_button = gr.Button('Start Generation', variant="p")
+            run_button = gr.Button('Start Training', variant="p")
 
 
         generated_images.select(fn=toggle_selection, inputs=None, outputs=[selected_images_gallery, state])
